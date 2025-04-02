@@ -24,6 +24,24 @@ const gameState = {
     autoSaveInterval: 60000, // Tự động lưu sau mỗi 1 phút
     lastAutoSave: Date.now()
 };
+function getRandomColor() {
+    // Danh sách các màu sắc có thể có cho kẻ địch (tông đỏ/cam/vàng)
+    const colors = [
+        0xff6b6b, // Đỏ nhạt
+        0xff4757, // Đỏ đậm
+        0xff7f50, // Cam san hô
+        0xff6348, // Cam đỏ
+        0xffa502, // Cam vàng
+        0xe84118, // Đỏ cam
+        0xf368e0, // Hồng
+        0xc56cf0, // Tím nhạt
+        0xff9ff3, // Hồng nhạt
+        0xbadc58  // Xanh lá nhạt
+    ];
+    
+    // Chọn ngẫu nhiên một màu từ danh sách
+    return colors[Math.floor(Math.random() * colors.length)];
+}
 
 // Các phần tử DOM
 const scoreElement = document.getElementById('score');
@@ -383,8 +401,8 @@ function spawnEnemy() {
         // Tạo điểm thưởng ngẫu nhiên khi tiêu diệt kẻ địch (5-15 điểm)
         const bountyPoints = 5 + Math.floor(Math.random() * 11);
         
-        // Tạo điểm trừ khi không tiêu diệt kẻ địch (2-8 điểm)
-        const damagePoints = 2 + Math.floor(Math.random() * 7);
+        // Tạo tỷ lệ trừ điểm mỗi giây (1-3 điểm)
+        const damagePerSecond = 1 + Math.floor(Math.random() * 3);
         
         // Container cho text
         const textContainer = new PIXI.Container();
@@ -400,8 +418,8 @@ function spawnEnemy() {
         bountyText.anchor.set(0.5);
         bountyText.y = -25;
         
-        // Tạo text hiển thị điểm trừ trên kẻ địch
-        const damageText = new PIXI.Text(`-${damagePoints}`, {
+        // Tạo text hiển thị tốc độ trừ điểm trên kẻ địch
+        const damageText = new PIXI.Text(`-${damagePerSecond}/s`, {
             fontFamily: 'Arial',
             fontSize: 14,
             fontWeight: 'bold',
@@ -431,42 +449,26 @@ function spawnEnemy() {
         // Thêm vào container kẻ địch
         enemyContainer.addChild(enemy);
         
+        // Thời gian lần cuối trừ điểm
+        const lastDamageTime = Date.now();
+        
+        // Tạo hàm để trừ điểm ngẫu nhiên trong phạm vi cho phép
+        const getRandomDamage = () => {
+            // Tạo số ngẫu nhiên từ 70% đến 130% mức trừ điểm cơ bản
+            const multiplier = 0.7 + Math.random() * 0.6; // Từ 0.7 đến 1.3
+            return Math.max(1, Math.floor(damagePerSecond * multiplier));
+        };
+        
         // Thêm kẻ địch vào mảng theo dõi
         gameState.enemies.push({
             id: enemyId,
             sprite: enemy,
             createdAt: Date.now(),
+            lastDamageTime: lastDamageTime,
             bountyPoints: bountyPoints,
-            damagePoints: damagePoints
+            damagePerSecond: damagePerSecond,
+            getRandomDamage: getRandomDamage
         });
-        
-        // THÊM MỚI: Thêm tính năng phạt người chơi khi kẻ địch chạm vào target
-        // Tạo interval để kiểm tra va chạm giữa kẻ địch và target
-        const collisionCheckId = setInterval(() => {
-            // Kiểm tra xem enemy còn tồn tại không
-            const enemyExists = enemyContainer.children.find(child => child.name === enemyId);
-            if (!enemyExists) {
-                clearInterval(collisionCheckId);
-                return;
-            }
-            
-            // Tính khoảng cách giữa enemy và target
-            const dx = enemy.x - target.x;
-            const dy = enemy.y - target.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            // Nếu khoảng cách nhỏ hơn tổng bán kính của enemy và target, xem như va chạm
-            if (distance < (20 + 50)) { // 20 là bán kính enemy, 50 là bán kính target
-                // Trừ điểm
-                const actualDamage = subtractPoints(damagePoints);
-                // Hiển thị floating text với điểm bị trừ
-                showFloatingText(`-${actualDamage}`, enemy.x, enemy.y, 0xFF0000); // Màu đỏ
-                // Di chuyển enemy đi xa target
-                const angle = Math.atan2(dy, dx);
-                enemy.x = target.x + Math.cos(angle) * 100;
-                enemy.y = target.y + Math.sin(angle) * 100;
-            }
-        }, 1000); // Kiểm tra mỗi giây
     }
 }
 
@@ -523,6 +525,12 @@ function gameLoop(delta) {
     const now = Date.now();
     const dt = (now - gameState.lastUpdate) / 1000; // Đổi sang giây
     gameState.lastUpdate = now;
+    
+    // Di chuyển các kẻ địch
+    moveEnemies(delta);
+    
+    // Trừ điểm theo thời gian cho mỗi kẻ địch
+    updateEnemyDamage(now);
     
     // Cập nhật text nổi
     updateFloatingTexts(delta);
@@ -677,25 +685,6 @@ function requestEnemy() {
     }
     return false;
 }
-// Di chuyển kẻ địch về phía target
-function moveEnemies(delta) {
-    // Cập nhật vị trí của các kẻ địch
-    enemyContainer.children.forEach(enemy => {
-        // Tính toán hướng di chuyển về phía target
-        const dx = target.x - enemy.x;
-        const dy = target.y - enemy.y;
-        const length = Math.sqrt(dx * dx + dy * dy);
-        
-        if (length > 0) {
-            // Tốc độ di chuyển - càng thấp càng chậm
-            const moveSpeed = 0.3; 
-            
-            // Di chuyển theo hướng target với tốc độ được điều chỉnh
-            enemy.x += (dx / length) * moveSpeed * delta;
-            enemy.y += (dy / length) * moveSpeed * delta;
-        }
-    });
-}
 
 // Cập nhật hàm gameLoop để thêm chuyển động cho enemy
 function gameLoop(delta) {
@@ -705,7 +694,10 @@ function gameLoop(delta) {
     gameState.lastUpdate = now;
     
     // Di chuyển các kẻ địch
-    moveEnemies(delta);
+    // moveEnemies(delta);
+    
+    // Trừ điểm theo thời gian cho mỗi kẻ địch
+    updateEnemyDamage(now);
     
     // Cập nhật text nổi
     updateFloatingTexts(delta);
@@ -715,6 +707,32 @@ function gameLoop(delta) {
         saveGame(false); // false = tự động lưu, không thông báo
         gameState.lastAutoSave = now;
     }
+}
+function updateEnemyDamage(currentTime) {
+    gameState.enemies.forEach(enemy => {
+        if (currentTime - enemy.lastDamageTime >= 1000) {
+
+            const secondsPassed = Math.floor((currentTime - enemy.lastDamageTime) / 1000);
+            
+            if (secondsPassed > 0) {
+
+                const damageAmount = enemy.getRandomDamage();
+                
+                // Trừ điểm
+                const actualDamage = subtractPoints(damageAmount);
+                
+                // Hiển thị floating text với điểm bị trừ
+                // Lấy vị trí của enemy
+                const enemySprite = enemy.sprite;
+                if (enemySprite && enemySprite.parent) {
+                    showFloatingText(`-${actualDamage}`, enemySprite.x, enemySprite.y, 0xFF0000); // Màu đỏ
+                }
+                
+                // Cập nhật thời gian trừ điểm cuối cùng
+                enemy.lastDamageTime = currentTime;
+            }
+        }
+    });
 }
 // Khởi động game khi trang web đã tải xong
 window.addEventListener('load', initGame);
