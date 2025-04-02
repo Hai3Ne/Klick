@@ -690,21 +690,13 @@ function requestEnemy() {
 function gameLoop(delta) {
     // Cập nhật thời gian
     const now = Date.now();
-    const dt = (now - gameState.lastUpdate) / 1000; // Đổi sang giây
+    const dt = (now - gameState.lastUpdate) / 1000;
     gameState.lastUpdate = now;
-    
-    // Di chuyển các kẻ địch
-    // moveEnemies(delta);
-    
-    // Trừ điểm theo thời gian cho mỗi kẻ địch
     updateEnemyDamage(now);
     
-    // Cập nhật text nổi
     updateFloatingTexts(delta);
-    
-    // Kiểm tra tự động lưu
     if (now - gameState.lastAutoSave > gameState.autoSaveInterval) {
-        saveGame(false); // false = tự động lưu, không thông báo
+        saveGame(false);
         gameState.lastAutoSave = now;
     }
 }
@@ -717,12 +709,7 @@ function updateEnemyDamage(currentTime) {
             if (secondsPassed > 0) {
 
                 const damageAmount = enemy.getRandomDamage();
-                
-                // Trừ điểm
                 const actualDamage = subtractPoints(damageAmount);
-                
-                // Hiển thị floating text với điểm bị trừ
-                // Lấy vị trí của enemy
                 const enemySprite = enemy.sprite;
                 if (enemySprite && enemySprite.parent) {
                     showFloatingText(`-${actualDamage}`, enemySprite.x, enemySprite.y, 0xFF0000); // Màu đỏ
