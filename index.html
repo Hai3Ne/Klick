@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Clicker Vui Nhộn - PixiJS</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@7.3.2/dist/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pixi-filters@5.2.1/dist/pixi-filters.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>Game Clicker Vui Nhộn</h1>
+            <div class="score-container">
+                <span id="score">0</span> điểm
+                (<span id="points-per-second">0</span> điểm/giây)
+            </div>
+        </div>
+
+        <div class="main-area">
+            <!-- PixiJS canvas sẽ được chèn vào đây -->
+            <div id="game-canvas"></div>
+        </div>
+
+        <div class="upgrades">
+            <h2>Nâng Cấp</h2>
+            <div class="upgrade-items">
+                <div class="upgrade-item">
+                    <button id="click-upgrade" class="upgrade-button">
+                        Nâng cấp nhấp chuột (+1)
+                        <span class="cost">Giá: 10 điểm</span>
+                    </button>
+                    <div class="level">Level: <span id="click-level">1</span></div>
+                </div>
+                
+                <div class="upgrade-item">
+                    <button id="auto-upgrade" class="upgrade-button">
+                        Nâng cấp tự động (+1/giây)
+                        <span class="cost">Giá: 25 điểm</span>
+                    </button>
+                    <div class="level">Level: <span id="auto-level">0</span></div>
+                </div>
+                
+                <div class="upgrade-item">
+                    <button id="speed-upgrade" class="upgrade-button">
+                        Nâng cấp tốc độ (+50% tốc độ)
+                        <span class="cost">Giá: 50 điểm</span>
+                    </button>
+                    <div class="level">Level: <span id="speed-level">1</span></div>
+                </div>
+                
+                <div class="upgrade-item">
+                    <button id="enemy-defense" class="upgrade-button">
+                        Nâng cấp phòng thủ (giảm thiệt hại)
+                        <span class="cost">Giá: 100 điểm</span>
+                    </button>
+                    <div class="level">Level: <span id="defense-level">0</span></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-controls">
+            <button id="save-game" class="control-button">Lưu Game</button>
+            <button id="load-game" class="control-button">Tải Game</button>
+            <button id="reset-game" class="control-button">Đặt Lại Game</button>
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
